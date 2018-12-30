@@ -1,0 +1,14 @@
+[Unit]
+Description=PeroniBot is a simple ping-pong program that broadcasts /root open/close status to a Telegram group
+Documentation=https://github.com/rootclub/peronibot
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=/etc/peronibot-server.env
+ExecStart=/usr/bin/peronibot-server
+Type=simple
+TimeoutSec=10min
+
+[Install]
+WantedBy=multi-user.target

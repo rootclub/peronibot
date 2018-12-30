@@ -1,0 +1,43 @@
+# .goreleaser.yml
+project_name: peronibot
+builds:
+  - main: cmd/client/client.go
+    binary: peronibot-client
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm
+    goarm:
+      - 7
+    env:
+      - CGO_ENABLED=0
+  - main: cmd/server/server.go
+    binary: peronibot-server
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm
+    goarm:
+      - 7
+    env:
+      - CGO_ENABLED=0
+git:
+  short_hash: true
+nfpm:
+  vendor: Root Club
+  homepage: https://www.rootclub.it/
+  maintainer: Fabio Rapposelli <fabio@rapposelli.org>
+  description: PeroniBot is a simple ping-pong program that broadcasts /root open/close status to a Telegram group
+  license: Apache 2.0
+  formats:
+    - deb
+    - rpm
+  bindir: /usr/bin
+  files:
+    "contrib/systemd/*.service": "/lib/systemd/system"
+  config_files:
+    "contrib/envfiles/*.env": "/etc"
