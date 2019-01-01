@@ -4,7 +4,6 @@ language: go
 addons:
   apt:
     packages:
-    # needed for the nfpm pipe:
     - rpm
 
 env:
@@ -13,7 +12,6 @@ install:
 
 after_success:
 
-# calls goreleaser
 deploy:
 - provider: script
   skip_cleanup: true

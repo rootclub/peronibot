@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:f4f6279cb37479954644babd8f8ef00584ff9fa63555d2c6718c1c3517170202"
+  name = "github.com/elazarl/go-bindata-assetfs"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "30f82fa23fd844bd5bb1e5f216db87fd77b5eb43"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
   name = "github.com/gorilla/websocket"
   packages = ["."]
@@ -72,6 +80,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/elazarl/go-bindata-assetfs",
     "github.com/gorilla/websocket",
     "github.com/namsral/flag",
     "github.com/sirupsen/logrus",

@@ -26,3 +26,10 @@
 
 # goreleaser distribution dir
 dist/
+
+cmd/client/client
+cmd/server/server
+cmd/server/cert.pem
+cmd/server/key.pem
+cmd/server/bindata.go
+cmd/server/bindata_assetfs.go

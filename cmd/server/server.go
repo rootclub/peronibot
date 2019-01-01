@@ -1,10 +1,14 @@
+//go:generate go-bindata-assetfs -pkg $GOPACKAGE assets/
+
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/gorilla/websocket"
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
@@ -12,25 +16,69 @@ import (
 )
 
 var (
-	port       string
-	psk        string
-	tgtoken    string
-	tgGroupID  int64
-	tlsCert    string
-	tlsCertKey string
-	interval   time.Duration
-	isOpen     = false
-	version    = "dev"
-	commit     = "none"
-	date       = "unknown"
+	port            string
+	psk             string
+	tgtoken         string
+	tgGroupID       int64
+	tlsCert         string
+	tlsCertKey      string
+	isOpenTimestamp int32
+	interval        time.Duration
+	isOpen          = false
+	version         = "dev"
+	commit          = "none"
+	date            = "unknown"
 )
 
 const (
-	openMessage  string = "Il ROOT è aperto!"
-	closeMessage string = "Il ROOT è chiuso"
+	openMessage     string  = "Il ROOT è aperto!"
+	closeMessage    string  = "Il ROOT è chiuso"
+	spaceAPIVersion string  = "0.13"
+	spaceName       string  = "Root"
+	spaceWWW        string  = "https://www.rootclub.it"
+	spaceAddress    string  = "Via Santa Croce, 6669, 47032 San Pietro In Guardiano FC"
+	spaceLat        float64 = 44.2195512
+	spaceLon        float64 = 12.2095288
 )
 
 var banner = `PeroniBOT [/root presence bot] - server -`
+
+type spaceAPI struct {
+	API                 string   `json:"api"`
+	Space               string   `json:"space"`
+	Logo                string   `json:"logo"`
+	URL                 string   `json:"url"`
+	Location            location `json:"location"`
+	Contact             contact  `json:"contact"`
+	State               state    `json:"state"`
+	IssueReportChannels []string `json:"issue_report_channels"`
+	Projects            []string `json:"projects,omitempty"`
+}
+
+type location struct {
+	Address string  `json:"address,omitempty"`
+	Lon     float64 `json:"lon"`
+	Lat     float64 `json:"lat"`
+}
+
+type contact struct {
+	Email    string `json:"email,omitempty"`
+	Irc      string `json:"irc,omitempty"`
+	Ml       string `json:"ml,omitempty"`
+	Facebook string `json:"facebook,facebook"`
+	Twitter  string `json:"twitter,omitempty"`
+}
+
+type state struct {
+	Icon       icon  `json:"icon"`
+	Open       bool  `json:"open"`
+	LastChange int32 `json:"lastchange"`
+}
+
+type icon struct {
+	Open   string `json:"open"`
+	Closed string `json:"closed"`
+}
 
 func main() {
 	log.Infof("%s %v, commit %v, built at %v\n", banner, version, commit, date)
@@ -44,7 +92,10 @@ func main() {
 	flag.DurationVar(&interval, "interval", 15*time.Second, "timeout interval")
 
 	flag.Parse()
-	http.HandleFunc("/rootbot", handler)
+
+	http.Handle("/assets/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: ""}))
+	http.HandleFunc("/rootbot", botHandler)
+	http.HandleFunc("/spaceapi.json", spaceapiHandler)
 	if err := http.ListenAndServeTLS(port, tlsCert, tlsCertKey, nil); err != nil {
 		log.Fatalf("can't start https listener: %s", err)
 	}
@@ -55,7 +106,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func handler(res http.ResponseWriter, req *http.Request) {
+func botHandler(res http.ResponseWriter, req *http.Request) {
 
 	bot, err := tgbotapi.NewBotAPI(tgtoken)
 	if err != nil {
@@ -98,6 +149,7 @@ func handler(res http.ResponseWriter, req *http.Request) {
 				log.Errorf("cannot send 'open' message to telegram: %s", err)
 			}
 			isOpen = true
+			isOpenTimestamp = int32(time.Now().Unix())
 		}
 
 		time.Sleep(interval)
@@ -116,5 +168,40 @@ func handler(res http.ResponseWriter, req *http.Request) {
 			log.Errorf("cannot send 'close' message to telegram: %s", err)
 		}
 		isOpen = false
+		isOpenTimestamp = int32(time.Now().Unix())
+	}
+}
+
+func spaceapiHandler(res http.ResponseWriter, req *http.Request) {
+	spaceOut := spaceAPI{
+		API:   spaceAPIVersion,
+		Space: spaceName,
+		Logo:  fmt.Sprintf("https://%s/assets/logo.jpg", req.Host),
+		URL:   spaceWWW,
+		Location: location{
+			Address: spaceAddress,
+			Lon:     spaceLon,
+			Lat:     spaceLat,
+		},
+		Contact: contact{
+			Email:    "infocom@rootclub.it",
+			Facebook: "https://www.facebook.com/circolo.root",
+			Twitter:  "https://twitter.com/CircoloRoot",
+		},
+		IssueReportChannels: []string{"email"},
+		State: state{
+			Icon: icon{
+				Open:   fmt.Sprintf("https://%s/assets/open.jpg", req.Host),
+				Closed: fmt.Sprintf("https://%s/assets/closed.jpg", req.Host),
+			},
+			Open:       isOpen,
+			LastChange: isOpenTimestamp,
+		},
+		Projects: []string{"https://github.com/rootclub"},
+	}
+	// Log spaceapi request on stdout
+	log.Infof("SpaceAPI request from: %q", req.RemoteAddr)
+	if err := json.NewEncoder(res).Encode(spaceOut); err != nil {
+		log.Errorf("can't process JSON for spaceapi request: %q", err)
 	}
 }

@@ -1,7 +1,7 @@
 # .goreleaser.yml
 project_name: peronibot
 builds:
-  - main: cmd/client/client.go
+  - main: ./cmd/client/
     binary: peronibot-client
     goos:
       - darwin
@@ -13,7 +13,7 @@ builds:
       - 7
     env:
       - CGO_ENABLED=0
-  - main: cmd/server/server.go
+  - main: ./cmd/server/
     binary: peronibot-server
     goos:
       - darwin
@@ -25,6 +25,9 @@ builds:
       - 7
     env:
       - CGO_ENABLED=0
+    hooks:
+      pre: make generate
+    
 git:
   short_hash: true
 nfpm:
