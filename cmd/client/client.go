@@ -18,15 +18,15 @@ var (
 	psk      string
 	interval time.Duration
 	insecure bool
-	version  string = "dev"
-	commit   string = "none"
-	date     string = "unknown"
+	version  = "dev"
+	commit   = "none"
+	date     = "unknown"
 )
 
 var banner = `PeroniBOT [/root presence bot] - client -`
 
 func main() {
-	fmt.Printf("%s %v, commit %v, built at %v\n", banner, version, commit, date)
+	log.Infof("%s %v, commit %v, built at %v\n", banner, version, commit, date)
 
 	flag.StringVar(&server, "server", "localhost:8081", "server address")
 	flag.StringVar(&psk, "psk", "", "pre-shared key")
@@ -46,43 +46,51 @@ func main() {
 		Host:   server,
 		Path:   "/rootbot",
 	}
-	log.Printf("Making connection to: %s", url.String())
+	log.Infof("Making connection to: %s", url.String())
 
 	if insecure {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec
 	}
 
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to dial: %s. %s\n", url.String(), err)
-		log.Printf("Failed to dial: %s. %s", url.String(), err)
-		os.Exit(1)
+		log.Fatalf("failed to dial: %s. %s", url.String(), err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err = conn.Close(); err != nil {
+			log.Errorf("error during connection close: %s", err)
+		}
+	}()
 
 	done := make(chan struct{})
 	go func() {
-		defer conn.Close()
-		defer close(done)
+
+		defer func() {
+			if err = conn.Close(); err != nil {
+				log.Errorf("error during connection close: %s", err)
+			}
+			close(done)
+		}()
 
 		for {
-			log.Println("Sending: ping.")
-			err = conn.WriteMessage(websocket.TextMessage, []byte(pingMessage))
-			if err != nil {
-				log.Println("Write Error: ", err)
+			log.Debug("sending: ping.")
+			if err = conn.WriteMessage(websocket.TextMessage, []byte(pingMessage)); err != nil {
+				log.Errorf("write error: %s", err)
 				break
 			}
 
-			msgType, bytes, err := conn.ReadMessage()
+			var msgType int
+			var bytes []byte
+			msgType, bytes, err = conn.ReadMessage()
 			if err != nil {
-				log.Println("WebSocket closed.")
+				log.Info("websocket closed.")
 				return
 			}
 			if msg := string(bytes[:]); msgType != websocket.TextMessage && msg != pongMessage {
-				log.Println("Unrecognized message received.")
+				log.Warn("unrecognized message received.")
 				continue
 			} else {
-				log.Println("Received: pong.")
+				log.Debug("received: pong.")
 			}
 
 			time.Sleep(interval)
@@ -92,10 +100,10 @@ func main() {
 	for {
 		select {
 		case <-interrupt:
-			log.Println("Client interrupted.")
+			log.Debug("client interrupted.")
 			err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
-				log.Println("WebSocket Close Error: ", err)
+				log.Errorf("websocket close error: %s", err)
 			}
 			select {
 			case <-done:
@@ -103,7 +111,7 @@ func main() {
 			}
 			return
 		case <-done:
-			log.Println("WebSocket connection terminated.")
+			log.Info("websocket connection terminated.")
 			return
 		}
 	}

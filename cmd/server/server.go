@@ -16,13 +16,13 @@ var (
 	psk        string
 	tgtoken    string
 	tgGroupID  int64
-	TLSCert    string
-	TLSCertKey string
+	tlsCert    string
+	tlsCertKey string
 	interval   time.Duration
-	isOpen     bool   = false
-	version    string = "dev"
-	commit     string = "none"
-	date       string = "unknown"
+	isOpen     = false
+	version    = "dev"
+	commit     = "none"
+	date       = "unknown"
 )
 
 const (
@@ -33,19 +33,21 @@ const (
 var banner = `PeroniBOT [/root presence bot] - server -`
 
 func main() {
-	fmt.Printf("%s %v, commit %v, built at %v\n", banner, version, commit, date)
+	log.Infof("%s %v, commit %v, built at %v\n", banner, version, commit, date)
 
 	flag.StringVar(&port, "port", ":8081", "server port")
 	flag.StringVar(&psk, "psk", "", "pre-shared key")
 	flag.StringVar(&tgtoken, "tgtoken", "", "telegram token")
-	flag.StringVar(&TLSCert, "tlscert", "cert.pem", "TLS Certificate file")
-	flag.StringVar(&TLSCertKey, "tlscertkey", "key.pem", "TLS Certificate key")
+	flag.StringVar(&tlsCert, "tlscert", "cert.pem", "TLS Certificate file")
+	flag.StringVar(&tlsCertKey, "tlscertkey", "key.pem", "TLS Certificate key")
 	flag.Int64Var(&tgGroupID, "tggroupid", 0, "telegram group id")
 	flag.DurationVar(&interval, "interval", 15*time.Second, "timeout interval")
 
 	flag.Parse()
 	http.HandleFunc("/rootbot", handler)
-	http.ListenAndServeTLS(port, TLSCert, TLSCertKey, nil)
+	if err := http.ListenAndServeTLS(port, tlsCert, tlsCertKey, nil); err != nil {
+		log.Fatalf("can't start https listener: %s", err)
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -57,25 +59,29 @@ func handler(res http.ResponseWriter, req *http.Request) {
 
 	bot, err := tgbotapi.NewBotAPI(tgtoken)
 	if err != nil {
-		log.Fatal("Cannot log in, exiting...")
+		log.Fatal("cannot log in, exiting...")
 	}
 	botUsername := fmt.Sprintf("@%s", bot.Self.UserName)
-	log.Infof("Authorized on account %s", botUsername)
+	log.Infof("authorized on account %s", botUsername)
 
 	var pongMessage = fmt.Sprintf("pong-%s", psk)
 	var pingMessage = fmt.Sprintf("ping-%s", psk)
 	conn, err := upgrader.Upgrade(res, req, nil)
 	if err != nil {
-		log.Errorf("Upgrade Error: ", err)
+		log.Errorf("upgrade error: %s", err)
 		return
 	}
 
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Errorf("error during connection close: %s", err)
+		}
+	}()
 
 	for {
 		msgType, bytes, err := conn.ReadMessage()
 		if err != nil {
-			log.Warnf("Read Error: ", err)
+			log.Warnf("read error: %s", err)
 			break
 		}
 		if msg := string(bytes[:]); msgType != websocket.TextMessage || msg != pingMessage {
@@ -83,28 +89,32 @@ func handler(res http.ResponseWriter, req *http.Request) {
 			break
 		}
 
-		log.Debugf("Received: ping.")
+		log.Debugf("received: ping.")
 
 		if !isOpen {
-			log.Infof(openMessage)
+			log.Info(openMessage)
 			msg := tgbotapi.NewMessage(tgGroupID, openMessage)
-			bot.Send(msg)
+			if _, err = bot.Send(msg); err != nil {
+				log.Errorf("cannot send 'open' message to telegram: %s", err)
+			}
 			isOpen = true
 		}
 
 		time.Sleep(interval)
-		log.Debugf("Sending: pong.")
+		log.Debugf("sending: pong.")
 		err = conn.WriteMessage(websocket.TextMessage, []byte(pongMessage))
 		if err != nil {
-			log.Println("Write Error: ", err)
+			log.Errorf("write Error: %s", err)
 			break
 		}
 	}
 
 	if isOpen {
-		log.Infof(closeMessage)
+		log.Info(closeMessage)
 		msg := tgbotapi.NewMessage(tgGroupID, closeMessage)
-		bot.Send(msg)
+		if _, err := bot.Send(msg); err != nil {
+			log.Errorf("cannot send 'close' message to telegram: %s", err)
+		}
 		isOpen = false
 	}
 }
