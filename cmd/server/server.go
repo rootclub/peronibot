@@ -25,6 +25,11 @@ var (
 	date       string = "unknown"
 )
 
+const (
+	openMessage  string = "Il ROOT è aperto!"
+	closeMessage string = "Il ROOT è chiuso"
+)
+
 var banner = `PeroniBOT [/root presence bot] - server -`
 
 func main() {
@@ -81,8 +86,8 @@ func handler(res http.ResponseWriter, req *http.Request) {
 		log.Debugf("Received: ping.")
 
 		if !isOpen {
-			log.Infof("Il ROOT è aperto!")
-			msg := tgbotapi.NewMessage(tgGroupID, "Il ROOT è aperto!")
+			log.Infof(openMessage)
+			msg := tgbotapi.NewMessage(tgGroupID, openMessage)
 			bot.Send(msg)
 			isOpen = true
 		}
@@ -97,8 +102,8 @@ func handler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if isOpen {
-		log.Infof("Il ROOT è chiuso")
-		msg := tgbotapi.NewMessage(tgGroupID, "Il ROOT è chiuso")
+		log.Infof(closeMessage)
+		msg := tgbotapi.NewMessage(tgGroupID, closeMessage)
 		bot.Send(msg)
 		isOpen = false
 	}
