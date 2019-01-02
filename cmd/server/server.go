@@ -13,8 +13,9 @@ import (
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
+	"github.com/rs/cors"
 )
-
+ 
 var (
 	port            string
 	psk             string
@@ -93,10 +94,15 @@ func main() {
 
 	flag.Parse()
 
-	http.Handle("/assets/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: ""}))
-	http.HandleFunc("/rootbot", botHandler)
-	http.HandleFunc("/spaceapi.json", spaceapiHandler)
-	if err := http.ListenAndServeTLS(port, tlsCert, tlsCertKey, nil); err != nil {
+	mux := http.NewServeMux()
+
+	mux.Handle("/assets/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: ""}))
+	mux.HandleFunc("/rootbot", botHandler)
+	mux.HandleFunc("/spaceapi.json", spaceapiHandler)
+
+	handler := cors.Default().Handler(mux) 
+
+	if err := http.ListenAndServeTLS(port, tlsCert, tlsCertKey, handler); err != nil {
 		log.Fatalf("can't start https listener: %s", err)
 	}
 }

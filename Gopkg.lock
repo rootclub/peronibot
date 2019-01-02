@@ -34,6 +34,14 @@
   version = "v1.7.4-pre"
 
 [[projects]]
+  digest = "1:b0c25f00bad20d783d259af2af8666969e2fc343fa0dc9efe52936bbd67fb758"
+  name = "github.com/rs/cors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9a47f48565a795472d43519dd49aac781f3034fb"
+  version = "v1.6.0"
+
+[[projects]]
   digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -83,6 +91,7 @@
     "github.com/elazarl/go-bindata-assetfs",
     "github.com/gorilla/websocket",
     "github.com/namsral/flag",
+    "github.com/rs/cors",
     "github.com/sirupsen/logrus",
     "gopkg.in/telegram-bot-api.v4",
   ]

@@ -41,6 +41,8 @@ nfpm:
     - rpm
   bindir: /usr/bin
   files:
-    "contrib/systemd/*.service": "/lib/systemd/system"
+    "contrib/systemd/peronibot-client.service": "/lib/systemd/system/peronibot-client.service"
+    "contrib/systemd/peronibot-server.service": "/lib/systemd/system/peronibot-server.service"
   config_files:
-    "contrib/envfiles/*.env": "/etc"
+    "contrib/envfiles/peronibot-client.env": "/etc/peronibot-client.env"
+    "contrib/envfiles/peronibot-server.env": "/etc/peronibot-server.env"
