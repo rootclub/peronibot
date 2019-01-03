@@ -10,7 +10,7 @@ builds:
       - amd64
       - arm
     goarm:
-      - 7
+      - 6
     env:
       - CGO_ENABLED=0
   - main: ./cmd/server/
@@ -22,7 +22,7 @@ builds:
       - amd64
       - arm
     goarm:
-      - 7
+      - 6
     env:
       - CGO_ENABLED=0
     hooks:
