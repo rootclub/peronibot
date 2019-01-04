@@ -179,10 +179,18 @@ func botHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func spaceapiHandler(res http.ResponseWriter, req *http.Request) {
+
+	// If we're running behind a proxy, we need to use 'X-Forwarded-Host' when
+	// building assets links
+	realHost := req.Host
+	if fwdHost := req.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+		realHost = fwdHost
+	}
+
 	spaceOut := spaceAPI{
 		API:   spaceAPIVersion,
 		Space: spaceName,
-		Logo:  fmt.Sprintf("https://%s/assets/logo.jpg", req.Host),
+		Logo:  fmt.Sprintf("https://%s/assets/logo.jpg", realHost),
 		URL:   spaceWWW,
 		Location: location{
 			Address: spaceAddress,
@@ -197,8 +205,8 @@ func spaceapiHandler(res http.ResponseWriter, req *http.Request) {
 		IssueReportChannels: []string{"email"},
 		State: state{
 			Icon: icon{
-				Open:   fmt.Sprintf("https://%s/assets/open.jpg", req.Host),
-				Closed: fmt.Sprintf("https://%s/assets/closed.jpg", req.Host),
+				Open:   fmt.Sprintf("https://%s/assets/open.jpg", realHost),
+				Closed: fmt.Sprintf("https://%s/assets/closed.jpg", realHost),
 			},
 			Open:       isOpen,
 			LastChange: isOpenTimestamp,
