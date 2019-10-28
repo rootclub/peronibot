@@ -1,7 +1,12 @@
 # .goreleaser.yml
 project_name: peronibot
+env:
+  - GOFLAGS=-mod=vendor
+  - CGO_ENABLED=0
+  - GO111MODULE=auto
 builds:
-  - main: ./cmd/client/
+  - id: "client"
+    main: ./cmd/client/
     binary: peronibot-client
     goos:
       - darwin
@@ -11,9 +16,8 @@ builds:
       - arm
     goarm:
       - 6
-    env:
-      - CGO_ENABLED=0
-  - main: ./cmd/server/
+  - id: "server"
+    main: ./cmd/server/
     binary: peronibot-server
     goos:
       - darwin
@@ -23,26 +27,20 @@ builds:
       - arm
     goarm:
       - 6
-    env:
-      - CGO_ENABLED=0
-    hooks:
-      pre: make generate
-    
-git:
-  short_hash: true
-nfpm:
-  vendor: Root Club
-  homepage: https://www.rootclub.it/
-  maintainer: Fabio Rapposelli <fabio@rapposelli.org>
-  description: PeroniBot is a simple ping-pong program that broadcasts /root open/close status to a Telegram group
-  license: Apache 2.0
-  formats:
-    - deb
-    - rpm
-  bindir: /usr/bin
-  files:
-    "contrib/systemd/peronibot-client.service": "/lib/systemd/system/peronibot-client.service"
-    "contrib/systemd/peronibot-server.service": "/lib/systemd/system/peronibot-server.service"
-  config_files:
-    "contrib/envfiles/peronibot-client.env": "/etc/peronibot-client.env"
-    "contrib/envfiles/peronibot-server.env": "/etc/peronibot-server.env"
+nfpms:
+  -
+    vendor: Root Club
+    homepage: https://www.rootclub.it/
+    maintainer: Fabio Rapposelli <fabio@rapposelli.org>
+    description: PeroniBot is a simple ping-pong program that broadcasts /root open/close status to a Telegram group
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    files:
+      "contrib/systemd/peronibot-client.service": "/lib/systemd/system/peronibot-client.service"
+      "contrib/systemd/peronibot-server.service": "/lib/systemd/system/peronibot-server.service"
+    config_files:
+      "contrib/envfiles/peronibot-client.env": "/etc/peronibot-client.env"
+      "contrib/envfiles/peronibot-server.env": "/etc/peronibot-server.env"
